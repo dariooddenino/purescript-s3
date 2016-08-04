@@ -1,0 +1,6 @@
+psc.tix
+bower_components
+node_modules
+.psci_modules
+psci.tix
+psc-ide-server.tix
