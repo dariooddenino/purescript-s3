@@ -30,7 +30,7 @@ foreign import traceAny :: forall e a. a -> Eff (console :: CONSOLE | e) Unit
 test' = void $ launchAff $ do
   buckets <- listBuckets s3
   case buckets of
-    Left _ -> liftEff $ traceAny "no"
+    Left e -> liftEff $ traceAny e
     Right (BucketResponse b) -> liftEff $ traceAny $ foldMap show b.buckets
   --liftEff $ traceAny buckets
   where

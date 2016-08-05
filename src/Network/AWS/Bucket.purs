@@ -16,7 +16,7 @@ import Data.DateTime (DateTime)
 
 newtype Bucket = Bucket
               { name :: String
-              , creationDate :: Maybe DateTime
+              , creationDate :: Either String DateTime
               }
 
 instance bucketIsForeign :: IsForeign Bucket where
@@ -54,3 +54,4 @@ listBuckets
    . S3Obj
   -> Aff (s3 :: S3 | eff) (Either ForeignError BucketResponse)
 listBuckets s3 = makeAff (\error success -> runFn3 _listBuckets s3 error (success <<< read))
+-- Here I have both an error callback, and a success callback that is an Either Error Response.
