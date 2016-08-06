@@ -4,7 +4,9 @@ import Prelude
 import Network.AWS.S3.Common (readDate, S3, S3Obj)
 import Data.Foreign (F, Foreign(), ForeignError)
 import Data.Foreign.Class (class IsForeign, readProp, read)
-import Data.Foreign.Index (prop)
+import Data.Foreign.Index as I
+import Data.Foreign.Lens (prop, array)
+import Data.Lens (FoldP(), (^..), traversed, to)
 import Data.JSDate
 import Control.Monad.Aff
 import Control.Monad.Eff
@@ -13,6 +15,10 @@ import Data.Either (Either)
 import Control.Monad.Eff.Exception
 import Data.Maybe (Maybe)
 import Data.DateTime (DateTime)
+import Data.Traversable (traverse)
+import Data.Monoid (class Monoid)
+import Data.List (List)
+
 
 newtype Bucket = Bucket
               { name :: String
@@ -25,22 +31,18 @@ instance bucketIsForeign :: IsForeign Bucket where
     creationDate <- readProp "CreationDate" value
     pure $ Bucket { name, creationDate: readDate creationDate }
 
+
 instance showBucket :: Show Bucket where
   show (Bucket { name, creationDate }) = "Bucket: " <> show name <> " " <> show creationDate
 
-newtype BucketResponse = BucketResponse
-  { buckets :: Array Bucket
-  , owner :: { displayName :: String
-             , id :: String
-             }
-  }
+bucket :: forall r. Monoid r => FoldP r Foreign Bucket
+bucket = to read <<< traversed
 
-instance bucketReponseIsForeign :: IsForeign BucketResponse where
-  read value = do
-    buckets <- readProp "Buckets" value
-    displayName <- value # (prop "Owner" >=> readProp "DisplayName")
-    id <- value # (prop "Owner" >=> readProp "ID")
-    pure $ BucketResponse { buckets, owner: { displayName, id } }
+buckets :: forall r. Monoid r => FoldP r Foreign Bucket
+buckets = prop "Buckets"
+      <<< array
+      <<< traversed
+      <<< bucket
 
 foreign import _listBuckets
   :: forall eff
@@ -52,6 +54,6 @@ foreign import _listBuckets
 listBuckets
   :: forall eff
    . S3Obj
-  -> Aff (s3 :: S3 | eff) (Either ForeignError BucketResponse)
-listBuckets s3 = makeAff (\error success -> runFn3 _listBuckets s3 error (success <<< read))
--- Here I have both an error callback, and a success callback that is an Either Error Response.
+  -> Aff (s3 :: S3 | eff) (List Bucket)
+listBuckets s3 = makeAff (\error success -> runFn3 _listBuckets s3 error (success <<< (\r -> r ^.. buckets)))
+

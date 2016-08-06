@@ -29,9 +29,9 @@ foreign import traceAny :: forall e a. a -> Eff (console :: CONSOLE | e) Unit
 -- just to see if anything gets printed
 test' = void $ launchAff $ do
   buckets <- listBuckets s3
-  case buckets of
-    Left e -> liftEff $ traceAny e
-    Right (BucketResponse b) -> liftEff $ traceAny $ foldMap show b.buckets
-  --liftEff $ traceAny buckets
+  liftEff $ logShow buckets
   where
     s3 = init $ defaultOptions
+             -- <> opt "accessKeyId" := "key"
+             -- <> opt "secretAccessKey" := "secret"
+             -- <> opt "region" := "region"
